@@ -30,7 +30,7 @@ public class BaiduImp implements IMediaAPI {
 	@Override
 	public MediaReturn addCust(CustBean custbean) {
 		
-		MediaReturn mr = null;
+		MediaReturn mr = new MediaReturn();
 		
 		String url = custbean.getAdxApi()+API_VERSION+ADDADV;
 		String requestStr = null;
@@ -38,21 +38,23 @@ public class BaiduImp implements IMediaAPI {
 		
 		try {
 			Map<String, Object> custReqMap = baiduService.getCustReqBody(custbean);
-			requestStr = (custReqMap.get("requestBody")).toString();
-			boolean result = Boolean.parseBoolean(custReqMap.get("result").toString());
-			if (result) {
+			
+			if("".equals(custReqMap.get("status"))){
+			    requestStr = (custReqMap.get("request")).toString();
 				responseStr = baiduService.post(url, requestStr); 
-				mr = baiduService.parseCustAPIandAuditInfo(responseStr);
+				mr = baiduService.parseCustAuditInfo(responseStr);
 			}else {
-				mr.setRefuseReason(Constants.MSG_CHECKFAIL);
-				mr.setRequest(Constants.MSG_CHECKFAIL+":"+requestStr);
+				mr.setRefuseReason(custReqMap.get("refuseReason").toString());
+				mr.setRequest(custReqMap.get("request").toString());
+				mr.setResponse(custReqMap.get("response").toString());
 			}
 		} catch (Exception e) {
+			mr.setRefuseReason(Constants.SYS_ERROR);
+			mr.setStatus(Constants.API_FAIL);
 			responseStr = e.getMessage();
-			mr = null;
 		}
 		
-		loger.saveLog(Constants.API_BAIDU_CUST, "addAdv", custbean.getCustomerId().toString(), requestStr, responseStr, mr);
+		loger.saveLog(Constants.API_BAIDU_CUST, "addAdv", custbean.getAdvertiserId().toString(), requestStr, responseStr, mr);
 		return mr;
 	}
 

@@ -3,7 +3,7 @@ package com.cloudcross.adcross.mediaapi;
 public class MediaReturn {
 
 	private String response;
-	private int status;
+	private String status;
 	private String refuseReason;
 	private String request;
 
@@ -15,11 +15,11 @@ public class MediaReturn {
 		this.response = response;
 	}
 
-	public int getStatus() {
+	public String getStatus() {
 		return status;
 	}
 
-	public void setStatus(int status) {
+	public void setStatus(String status) {
 		this.status = status;
 	}
 

@@ -2,10 +2,10 @@ package com.cloudcross.adcross.common;
 
 public class Constants {
 	
-	public final static int API_FAIL = 3;     //预检查接口发送参数失败或者媒体审核失败
-	public final static int API_REQFAIL = -1; //媒体接口无法访问或者访问受限
-	public final static int API_WAIT = 2;	  //媒体接收数据，待审核
-	public final static int API_SUCC = 4;	  //媒体审核通过
+	public final static String API_FAIL = "3";     //预检查接口发送参数失败或者媒体审核失败
+	public final static String API_REQFAIL = "-1"; //媒体接口无法访问或者访问受限
+	public final static String API_WAIT = "2";	  //媒体接收数据，待审核
+	public final static String API_SUCC = "4";	  //媒体审核通过
 	
 	public final static String MSG_CHECKFAIL = "发送信息预先检查发现错误";
 	

@@ -33,73 +33,75 @@ public class BaiduService {
 	private static final String ACCEPT = "application/json;charset=utf-8";
 	private static final String CONTENT_TYPE = "application/json;charset=utf-8";
 
-	public JSONObject setAuth(String idspId, String itoken)
-			throws JSONException {
-		JSONObject object = new JSONObject();
-		int dspId = Integer.parseInt(idspId);
-		object.put("dspId", dspId);
-		object.put("token", itoken);
-		return object;
-	}
-
 	/*
-	 * 获取待上传的广告主资质信息
+	 * 防呆检查，没有问题则拼接待上传的广告主资质参数信息
 	 */
-	private Map<String, Object> getCustInfo(CustBean custBean) {
-		JSONObject jObject = new JSONObject();
-		JSONArray jArray = new JSONArray();
-		String Error = "";
-		StringBuffer msg = new StringBuffer();
+	public Map<String, Object> getCustReqBody(CustBean custBean) {
 		
-		try {
-			jObject.put("advertiserId", custBean.getCustomerId() == null ? 0: custBean.getCustomerId());
-			jObject.put("advertiserLiteName",LangUtil.isBlank(custBean.getAdvertiserName()) ? msg.append("广告主名称未设置，") : custBean.getAdvertiserName());
-			jObject.put("advertiserName", LangUtil.isBlank(custBean.getCustomerName()) ? msg.append("客户名称未设置，"): custBean.getCustomerName());
-			jObject.put("siteName", LangUtil.isBlank(custBean.getSiteName()) ? msg.append("网站名未设置，"): custBean.getSiteName());
-			jObject.put("siteUrl", LangUtil.isBlank(custBean.getSiteUrl()) ? msg.append("网站URL未设置，"): custBean.getSiteUrl());
-			jObject.put("telephone", custBean.getContactPhone() == null ? "" : custBean.getContactPhone());
-			jObject.put("address", custBean.getCompanyAddress() == null ? "": custBean.getCompanyAddress());
-			jArray.put(jObject);
-		} catch (JSONException e) {
-			Error = Constants.SYS_ERROR;//发生系统错误,需要联系管理员处理.
-			msg.append(Error +" 原始参数: "+ custBean.toString() + " 系统异常错误: " + e.getMessage() +",");
+		String status = "";
+		String request = "";
+		StringBuffer refuseReason = new StringBuffer();
+		String Error = "";
+		String response = "";		
+		
+		if(LangUtil.isBlank(custBean.getAdvertiserName())){
+			refuseReason.append("广告主名称未设置，");
 		}
-		Map<String, Object> map = new HashMap<String, Object>();
-		if (msg.toString().trim().equals("")) {
-			map.put("error", "");
-			map.put("jsArray", jArray);
-		}else {
-			map.put("error", Error);
-			map.put("jsArray", msg.toString().substring(0, msg.toString().length()-1));
+		if(LangUtil.isBlank(custBean.getCustomerName())){
+			refuseReason.append("客户名称未设置，");
 		}
-		return map;
-	}
-
-	/*
-	 * 生成待上传广告主请求串
-	 */
-	public Map<String, Object> getCustReqBody(CustBean custBean)
-			throws JSONException {
-
-		JSONObject object = new JSONObject();
-		object.put("authHeader",
-				setAuth(custBean.getDspId(), custBean.getToken()));
-
-		Map<String, Object> map = getCustInfo(custBean);
-		boolean result = Boolean.parseBoolean(map.get("result").toString());
-		Map<String, Object> custReqbody = new HashMap<String, Object>();
-		if (result) {
-			JSONArray jArray = (JSONArray) map.get("jsArray");
-			object.put("request", jArray);
-			custReqbody.put("result", result);
-			custReqbody.put("requestBody", object.toString());
-		} else {
-			String msg = map.get("jsArray").toString();
-			custReqbody.put("result", result);
-			custReqbody.put("requestBody", msg); // 数据项检查异常，无法拼接完整参数
+		if(LangUtil.isBlank(custBean.getSiteName())){
+			refuseReason.append("网站名未设置，");
 		}
-		return custReqbody;
+		if(LangUtil.isBlank(custBean.getSiteUrl())){
+			refuseReason.append("网站URL未设置，");
+		}
+	
+		JSONObject jReqBody = new JSONObject();
+		
+		if("".equals(refuseReason.toString())){ //参数检查通过，开始拼接参数
+			
+			JSONArray jArray = new JSONArray();
+			JSONObject jObject = new JSONObject();
+			
+			JSONObject joHeader = new JSONObject();
+			
+			try {
+				joHeader.put("dspId", Integer.parseInt(custBean.getDspId()));
+				joHeader.put("token", custBean.getToken());
+				jReqBody.put("authHeader",joHeader);
+				
+				jObject.put("advertiserId", custBean.getCustomerId());
+				jObject.put("advertiserLiteName",custBean.getAdvertiserName());
+				jObject.put("advertiserName", custBean.getCustomerName());
+				jObject.put("siteName", custBean.getSiteName());
+				jObject.put("siteUrl", custBean.getSiteUrl());
+				jObject.put("telephone", custBean.getContactPhone());
+				jObject.put("address", custBean.getCompanyAddress());
+				jArray.put(jObject);
 
+				jReqBody.put("request",jArray);
+				request=jReqBody.toString();
+				
+			} catch (JSONException e) {
+				refuseReason.append(Constants.SYS_ERROR);
+				response=" 原始参数: "+ custBean.toString() + " 系统异常错误: " + e.getMessage() +",";
+				status = Constants.API_FAIL;
+			}
+		}else{ //参数检查发现错误
+			refuseReason.toString().substring(0, Error.toString().length()-1);
+			status = Constants.API_FAIL;
+			request = custBean.toString();
+		}
+		
+		Map<String, Object> custReq = new HashMap<String, Object>();
+		custReq.put("status",status);
+		custReq.put("request",request);
+		custReq.put("error",Error);
+		custReq.put("response",response);
+		
+		return custReq;
+		
 	}
 
 	/*
@@ -148,7 +150,7 @@ public class BaiduService {
 	 * 		//审核通过
 	 * 			{"status":0,"errors":[],"response":[{"advertiserId":130,"state":0,"refuseReason":null}]}
 	 */
-	public MediaReturn parseCustAPIandAuditInfo(String responseStr) {
+	public MediaReturn parseCustAuditInfo(String responseStr) {
 		
 		MediaReturn mr = new MediaReturn();
 		mr.setStatus(Constants.API_WAIT);
@@ -156,16 +158,14 @@ public class BaiduService {
 
 		JSONObject resp;//完整的返回串
 		JSONArray jaResp;//返回串中的response值(数组)
-		JSONObject joResp;//response值的第一个json对象
+		JSONObject joResp;//response数组的第一个json对象值
 		
 		try {
 			resp = new JSONObject(responseStr);
 			
 			if (resp.has("status")) { // 接口有返回状态
-				
 				int ApiStatus = resp.getInt("status");
 				if (ApiStatus == 0) { // 接口返回成功	
-					
 					jaResp = resp.getJSONArray("response");
 					joResp = jaResp.getJSONObject(0);
 
@@ -180,9 +180,9 @@ public class BaiduService {
 							mr.setRefuseReason(joResp.getString("refuseReason"));
 						}
 					}else{
+						mr.setStatus(Constants.API_FAIL);
 						mr.setRefuseReason(Constants.MR_PARSE_ERROR);
 					}
-					
 				} else if (ApiStatus == 2) {// 接口返回失败，通常为接口直接返回失败信息
 					if (resp.getJSONArray("errors") != null) {
 						JSONArray jaError = resp.getJSONArray("errors");
@@ -228,7 +228,7 @@ public class BaiduService {
 //		"{\"status\":2,\"errors\":[{\"index\":-1,\"field\":\"\",\"code\":803,\"message\":\"IP is not in allowed IP set\"}],\"response\":null}";
 //		"{\"status\":2,\"errors\"[{\"index\":-1,\"field\":\"\",\"code\":803,\"message\":\"IP is not in allowed IP set\"}],\"response\":null}";
 		
-//		bs.parseCustAPIandAuditInfo(responseStr);
+		bs.parseCustAuditInfo(responseStr);
 	}
 
 }
