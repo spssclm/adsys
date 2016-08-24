@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="loggerSqlMapper">
+
+	<insert id="insertLoger" parameterType="Logger">
+		insert into rv_logers(model,operater,obj,user,context,status,updated,response)
+		values(#{model},#{operater},#{obj},#{user},#{context},#{status},now(),#{response})
+	</insert>
+	
+	<update id="updateLoger" parameterType="Logger">
+		update rv_logers set context=#{context} ,updated=now(),response=#{response} where id=#{id}
+	</update>
+	
+	<select id="findLogerId" parameterType="Logger"  resultType="Logger">
+		select id from rv_logers where model=#{model} and operater=#{operater} and obj=#{obj} and user=#{user} and status=#{status} order by id desc limit 1
+	</select>
+</mapper>
